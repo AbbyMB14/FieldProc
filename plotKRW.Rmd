@@ -1,0 +1,580 @@
+---
+title: "plottingKRW"
+author: "Abby Beilman"
+date: "2025-03-05"
+output: html_document
+---
+
+```{r}
+#set up
+library(ggplot2)
+library(tidyverse)
+library(ggpubr)
+library(broom)
+library(AICcmodavg)
+library(lubridate)
+
+setwd("C:/Users/abby/OneDrive - Michigan State University/Field Based Work/BGC_results")
+#change this for the file path you are reading from
+
+dat<-read.csv("gasfield.csv")
+```
+
+```{r}
+#additional cleaning
+
+dat <- dat[complete.cases(dat$Site), ]
+dat$Site <-as.factor(dat$Site)
+print(levels(dat$Site))
+dat$Site <- factor(dat$Site, levels = c("DICK", "EXPF", "RICE", "BATT", "KAWW", "KCOM"))
+
+dat$Date <- ymd(dat$Date)
+```
+
+```{r}
+#generate stuff for plotting
+
+homos<-c( "darkorange3", "goldenrod2","darkred", "blue","darkgreen","purple4")
+linea<-c('twodash','solid', 'longdash','dotted', 'dotdash', 'dashed')
+
+logco2<-log(dat$pCO2)
+logch4<-log(dat$pCH4)
+logn2o<-log(dat$pN2O)
+dat<-mutate(dat,logch4 )
+dat<-mutate(dat,logco2)
+min_date <- min(dat$Date)
+max_date <- max(dat$Date)
+```
+
+```{r}
+#plot DIC
+ggplot(data = dat, aes(x = Date, y = DIC, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_line(size=0.75) + 
+  geom_point()+
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date, max_date)) +  # Set the limits for the x-axis
+  labs(title = "DIC 2023-2025", x = "Date", y = "DIC mg/l") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.88, 0.88),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle=45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 5.5),# Adjust the size of the legend text
+    legend.title = element_text(size = 8) # Adjust the size of the legend title
+  )
+
+#setwd
+#ggsave("june_DIC.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+```{r}
+#plot DOC
+ggplot(data = dat, aes(x = Date, y = DOC, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_line(size=0.75) + 
+  geom_point()+
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date, max_date)) +  # Set the limits for the x-axis
+  labs(title = "DOC 2023-2025", x = "Date", y = "DOC mg/l") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.88, 0.88),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle=45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 5.5),# Adjust the size of the legend text
+    legend.title = element_text(size = 8) # Adjust the size of the legend title
+  )
+
+#setwd ("C:/Users/abby/OneDrive - Michigan State University/Paper 2+/Figures")
+#ggsave("june_DOC.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+
+```
+```{r}
+#violin plot co2
+ggplot(data = dat, aes(x = Site, y = pCO2, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "CO2 2023-2024", x = "", y = "pCO2 uatm (log)") +
+  scale_y_log10() +  # Make the y-axis log scale
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  ) 
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("june_co2_violin.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+```{r}
+ggplot(data = dat, aes(x = Site, y = pCH4, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "CH4 2023-2024", x = "", y = "pCH4 uatm (log)") +
+  scale_y_log10() +  # Make the y-axis log scale
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  )
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("june_ch4_violin.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+
+```
+
+```{r}
+#scatter plot?? co2
+ggplot(data = dat, aes(x = Date, y = pCO2, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_point() + 
+  geom_line() +
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date, max_date)) +  # Set the limits for the x-axis
+  labs(title = "CO2 2023-2024", x = "Date", y = "pCO2 uatm (log)") +
+  scale_y_log10() + 
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.11, 0.24),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 8)  # Adjust the size of the legend text
+  )
+
+#ggsave("june_c02_lin.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+```{r}
+#scatter plot?? ch4
+ggplot(data = dat, aes(x = Date, y = pCH4, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_point() + 
+  geom_line() +
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date, max_date)) +  # Set the limits for the x-axis
+  labs(title = "CH4 2023-2024", x = "Date", y = "pCH4 uatm (log)") +
+  scale_y_log10() + 
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.11, 0.24),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 8)  # Adjust the size of the legend text
+  )
+
+#ggsave("june_ch4_lin.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+
+```{r}
+#scatter plot?? n2o
+
+dat_2024_2025 <- dat %>%
+  filter(lubridate::year(Date) %in% c(2024, 2025))
+
+min_date2<-min(dat_2024_2025$Date)
+
+ggplot(data = dat_2024_2025, aes(x = Date, y = pN2O, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_point() + 
+  geom_line() +
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date2, max_date)) +  # Set the limits for the x-axis
+  labs(title = "n2o 2023-2025", x = "Date", y = "pN2O uatm (log)") +
+  scale_y_log10() + 
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.11, 0.24),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 8)  # Adjust the size of the legend text
+  )
+
+#ggsave("june_ch4_lin.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+```{r}
+#corr checks
+ggplot(data=dat, aes(x=pN2O, y=Temp))+geom_point()
+
+ggplot(data = dat, aes(x = pN2O, y = Chl, color = as.factor(Site), linetype = as.factor(Site))) + 
+  geom_point() + 
+  geom_line() +
+  scale_color_manual(values = homos, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  scale_linetype_manual(values = linea, name = "Site", labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  #scale_x_date(date_breaks = "1 month", date_labels = "%b %Y", limits = c(min_date, max_date)) +  # Set the limits for the x-axis
+  labs(title = "CO2 x Temp", x = "Temperature Deg C", y = "pCO2 uatm ") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    legend.position = c(0.11, 0.24),  # Adjust the legend position (x, y coordinates)
+    legend.background = element_rect(fill = alpha('white', 0.5)),  # Set legend background with transparency
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Shift x-axis labels to the left
+    legend.key.size = unit(0.5, 'cm'),  # Adjust the size of the legend keys
+    legend.text = element_text(size = 8)  # Adjust the size of the legend text
+  )
+
+ggsave("AR_co2_temp.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 6,
+       height = 3.5,
+       units = "in",
+       dpi = 300
+)
+
+
+```
+
+#notes: co2 is pos corr w/temp, but ch4 isn't and temp/time don't have a relationship
+
+
+```{r}
+#chl, bg, turb boxplot ranges
+
+#violin plot chla
+ggplot(data = dat, aes(x = Site, y = Chl, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "CHLA 2024", x = "", y = "Chl-a ug/l)") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  )
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("chla_violin2.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+#note N here is very low
+```
+
+```{r}
+#cdom, chl, bg, turb boxplot ranges
+
+#violin plot cdom
+ggplot(data = dat, aes(x = Site, y = CDOM, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "CDOM 2024", x = "", y = "CDOM ppb)") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  )
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("cdom_violin2.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+#note N here is very low
+```
+
+```{r}
+#bg, turb boxplot ranges
+
+#violin plot bg
+ggplot(data = dat, aes(x = Site, y = BG, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "BGA 2024", x = "", y = "BGA ppb)") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  )
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("bga_violin2.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+#note N here is very low
+```
+
+```{r}
+#turb boxplot ranges
+
+#violin plot turb
+ggplot(data = dat, aes(x = Site, y = Turbidity, color = as.factor(Site))) + 
+  geom_violin(aes(fill = as.factor(Site)), alpha = 0.5) +  # Fill the violin plot with color and set transparency
+  geom_boxplot(width = 0.07, outlier.shape = NA) +  # Add slightly larger boxplot inside each violin, without outliers
+  scale_color_manual(values = homos) +
+  scale_fill_manual(values = homos) +  # Use the same colors for fill
+  scale_x_discrete(labels = c("Dickison Creek", "Augusta Creek", "Rice Creek", "Battle Creek", "Kalamazoo - BC", "Kalamazoo - C")) +
+  labs(title = "Turbidity 2024", x = "", y = "Turbidity NTU)") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+    axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+    legend.position = "none"  )
+
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("turb_violin2.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+#note N here is very low
+```
+
+```{r}
+setwd("C:/Users/abby/OneDrive - Michigan State University/Paper 2+/2023.24_Results")
+filters<-read.csv('filters.csv')
+
+ggplot(filters, aes(x = site, y = value, fill = factor(category, levels = c("OC", "IC","loss")))) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("IC" = "orchid4", "OC" = "green", "loss" = "lightblue")) +
+  labs(title = "Particulate Carbon Breakdown", y = "Amount (grams)", x="", fill = "Category") +
+  theme_classic() +
+  theme(
+    text = element_text(family = "serif", size = 12),  # Change the base font family and size
+    plot.title = element_text(face = "bold", size = 16),  # Change the title font face and size
+    axis.title = element_text(size = 14),  # Change the axis title font size
+    axis.text = element_text(size = 12),    # Change the axis text font size
+     axis.text.x = element_text(hjust = 1, angle = 45),  # Rotate x-axis labels and shift to the left
+  ) +
+  scale_x_discrete(labels = c("DICK" = "Dickison Creek", "EXPF" = "Augusta Creek", "KCOM" = "Kalamazoo - C", "RICE" = "Rice Creek"))
+
+setwd("C:/Users/abby/OneDrive - Michigan State University/Paper 2+/Figures")
+# now let's say that's your final plot you want to put in your paper - we
+# still should export so it looks nice
+ggsave("AR_filterbar.png",
+       plot = last_plot(),
+       device = "png",
+       scale = 1.2,
+       width = 4.5,
+       height = 4,
+       units = "in",
+       dpi = 300
+)
+
+```
+
+```{r}
+##LeStats
+
+one.way_ch4 <- aov(logch4~Site, data = dat)
+summary(one.way_ch4)
+
+ch4_tuk<-TukeyHSD(one.way_ch4)
+ch4_tuk
+
+#p =  0.001
+#sig diff:
+
+#CH4
+#                 diff         lwr       upr     p adj
+# BATT-DICK  0.8498470  0.24102374 1.4586702 0.0013197
+# KCOM-DICK  0.6263762 -0.01646297 1.2692154 0.0607243
+
+# BATT-EXPF  0.6357704  0.09544374 1.1760971 0.0113324
+
+one.way_co2 <- aov(logco2~Site, data = dat)
+summary(one.way_co2)
+
+co2_tuk<-TukeyHSD(one.way_co2)
+co2_tuk
+
+#very tiny p value
+#sig diff: 
+
+#CO2
+#                   diff         lwr         upr     p adj
+# EXPF-DICK -0.441921788 -0.70812688 -0.17571669 0.0000675
+# KCOM-DICK -0.495031056 -0.79199527 -0.19806684 0.0000622
+# RICE-EXPF  0.525590483  0.26825084  0.78293013 0.0000005
+# BATT-EXPF  0.518814926  0.26533698  0.77229288 0.0000005
+# KCOM-RICE -0.578699752 -0.86774349 -0.28965601 0.0000009
+# KCOM-BATT -0.571924195 -0.85753523 -0.28631316 0.0000009
+
+# KAWW-BATT -0.329803121 -0.61541416 -0.04419209 0.0137835
+# KAWW-RICE -0.336578678 -0.62562242 -0.04753494 0.0126330
+
+one.way_DOC <- aov(DOC~Site, data = dat)
+summary(one.way_DOC)
+
+DOC_tuk<-TukeyHSD(one.way_DOC)
+DOC_tuk
+
+#DOC
+#p = 0.000188
+#                 diff        lwr       upr     p adj
+# RICE-DICK  2.6005631  0.2149055 4.9862208 0.0240715
+# BATT-DICK  3.3592371  0.9735794 5.7448947 0.0011207
+# RICE-EXPF  2.3610129  0.1181922 4.6038336 0.0328697
+# BATT-EXPF  3.1196868  0.8768661 5.3625075 0.0013451
+
+one.way_DIC <- aov(DIC~Site, data = dat)
+summary(one.way_DIC)
+
+DIC_tuk<-TukeyHSD(one.way_DIC)
+DIC_tuk
+
+#DIC
+#p = 0.00695
+#               diff        lwr        upr     p adj
+#KCOM-BATT -8.0328750 -15.207990 -0.8577602 0.0189967
+
+
+
+
+```
